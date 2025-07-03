@@ -13,6 +13,7 @@
         --color-naranja: #FDF2E9;
         --color-rosa: #F2D7D5;
         --color-boton: #BDBDBD;
+        --padding-general: 15px;
     }
 
     * {
@@ -21,11 +22,18 @@
         padding: 0;
     }
 
+    html, body {
+        width: 100%;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
     body {
         font-family: 'Montserrat', sans-serif;
         background-color: #F3F3F0;
-        padding: 15px;
-        min-height: 100vh;
+        padding: var(--padding-general);
+        display: flex;
+        flex-direction: column;
     }
 
     /* ========== HEADER ========== */
@@ -36,11 +44,13 @@
         gap: 10px;
         padding: 10px 0;
         flex-wrap: wrap;
+        width: 100%;
     }
 
     .title-container {
         text-align: center;
         margin: 10px 0 20px;
+        width: 100%;
     }
 
     .title-line {
@@ -54,12 +64,12 @@
     }
 
     /* Tamaños responsive para títulos */
-    .title-line:nth-child(1) { font-size: 2.2rem; }
-    .title-line:nth-child(2) { font-size: 1.8rem; }
+    .title-line:nth-child(1) { font-size: clamp(1.8rem, 6vw, 3.5rem); }
+    .title-line:nth-child(2) { font-size: clamp(1.5rem, 5vw, 3rem); }
     
     .heart {
         color: #F4511E;
-        font-size: 1.8rem;
+        font-size: clamp(1.5rem, 5vw, 2.3rem);
         vertical-align: middle;
         animation: pulse 1.5s infinite;
     }
@@ -70,29 +80,32 @@
         max-width: 1000px;
         margin: 0 auto;
         background-color: white;
-        padding: 15px;
+        padding: var(--padding-general);
         box-shadow: 0 0 15px rgba(0,0,0,0.1);
         border-radius: 10px;
         overflow-x: auto;
+        flex: 1;
     }
 
     table {
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
+        min-width: 600px; /* Mínimo para que no se comprima demasiado */
     }
 
     td {
         border: 1px solid #ddd;
         padding: 8px;
         text-align: center;
-        height: 70px; /* Más compacto en móviles */
+        height: clamp(60px, 10vw, 80px);
         vertical-align: middle;
         cursor: pointer;
         transition: all 0.2s;
-        font-size: 11px;
+        font-size: clamp(10px, 2vw, 12px);
         font-weight: 500;
         word-break: break-word;
+        overflow: hidden;
     }
 
     td:hover {
@@ -112,10 +125,11 @@
         gap: 10px;
         margin: 20px 0;
         flex-wrap: wrap;
+        width: 100%;
     }
 
     button {
-        padding: 8px 16px;
+        padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
         background-color: var(--color-boton);
         color: white;
         border: none;
@@ -125,6 +139,7 @@
         font-weight: 500;
         transition: all 0.3s;
         min-width: 120px;
+        font-size: clamp(12px, 3vw, 14px);
     }
 
     button:hover {
@@ -138,19 +153,20 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 100%;
-        height: 100%;
+        width: 100vw;
+        height: 100vh;
         background-color: rgba(0,0,0,0.7);
         z-index: 100;
         overflow-y: auto;
+        padding: 20px;
     }
 
     .modal-content {
         background-color: #fefefe;
-        margin: 20px auto;
+        margin: auto;
         padding: 20px;
         border-radius: 10px;
-        width: 90%;
+        width: 100%;
         max-width: 350px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
@@ -162,39 +178,36 @@
     }
 
     .auth-form input {
-        padding: 10px;
+        padding: 12px;
         border: 1px solid #ddd;
         border-radius: 5px;
         width: 100%;
+        font-size: 16px; /* Tamaño fijo para mejor usabilidad en móviles */
     }
 
-    /* ========== MEDIA QUERIES ========== */
-    @media (min-width: 600px) {
-        body {
-            padding: 20px;
+    /* ========== MEDIA QUERIES ADICIONALES ========== */
+    @media (max-width: 600px) {
+        :root {
+            --padding-general: 10px;
         }
-        
-        .title-line:nth-child(1) { font-size: 3rem; }
-        .title-line:nth-child(2) { font-size: 2.5rem; }
-        .heart { font-size: 2.3rem; }
         
         td {
-            height: 80px;
-            font-size: 12px;
-            padding: 10px;
+            padding: 5px;
+        }
+        
+        .controls {
+            gap: 8px;
         }
     }
 
-    @media (min-width: 768px) {
-        .title-line:nth-child(1) { font-size: 3.5rem; }
-        .title-line:nth-child(2) { font-size: 3rem; }
-        
-        .controls {
-            gap: 15px;
+    @media (orientation: landscape) and (max-height: 500px) {
+        .bingo-card {
+            padding: 5px;
         }
         
-        button {
-            padding: 10px 20px;
+        td {
+            height: 50px;
+            font-size: 10px;
         }
     }
 
@@ -209,10 +222,12 @@
         }
         .bingo-card {
             box-shadow: none !important;
+            padding: 0 !important;
         }
         td {
-            height: 60px !important;
-            font-size: 10px !important;
+            height: 50px !important;
+            font-size: 9px !important;
+            padding: 3px !important;
         }
     }
 
@@ -293,11 +308,11 @@
             </tr>
             <!-- Fila 4 -->
             <tr>
-                <td data-color="verde">DORMIR EN UN ÁRBOL O CABANA</td>
+                <td data-color="verde">DORMIR EN UN ÁRBOL O CABAÑA</td>
                 <td data-color="naranja">TURISTA EN TU PROPIO PAÍS</td>
                 <td data-color="rosa">FESTIVAL</td>
                 <td data-color="verde">VIAJE EN TEMPORADA BAJA</td>
-                <td data-color="naranja">BUTA GASTRONÓMICA</td>
+                <td data-color="naranja">RUTA GASTRONÓMICA</td>
                 <td data-color="rosa">BALNEARIO O SPA</td>
             </tr>
             <!-- Fila 5 -->
@@ -306,7 +321,7 @@
                 <td data-color="rosa">CAPITAL EUROPEA</td>
                 <td data-color="verde">VIAJE DE MISTERIO</td>
                 <td data-color="naranja">FENÓMENO NATURAL</td>
-                <td data-color="rosa">ROAD TRIP EN CARPETERA FAMOSA</td>
+                <td data-color="rosa">ROAD TRIP EN CARRETERA FAMOSA</td>
                 <td data-color="verde">VIAJE DE LUJO</td>
             </tr>
             <!-- Fila 6 -->
@@ -340,7 +355,7 @@
             <tr>
                 <td data-color="rosa">VIAJE LITERARIO</td>
                 <td data-color="verde">RUTA DE LEYENDAS URBANAS</td>
-                <td data-color="naranja">VIAJE DE ARTE O MUSEDS</td>
+                <td data-color="naranja">VIAJE DE ARTE O MUSEOS</td>
                 <td data-color="rosa">EVENTO DE COCHES</td>
                 <td data-color="verde">VIAJE DE MONTAÑA Y SENDERISMO</td>
                 <td data-color="naranja">VIAJE FAMILIAR</td>
