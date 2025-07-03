@@ -347,6 +347,16 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
+
+        // Habilita caché offline
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code === 'failed-precondition') {
+                console.warn("Persistencia offline no disponible (múltiples pestañas abiertas)");
+            } else if (err.code === 'unimplemented') {
+                console.warn("Persistencia no soportada en este navegador");
+            }
+        });
 
         // Variables globales
         let currentUser = null;
