@@ -317,7 +317,7 @@
 
     <!-- Firebase + Código actualizado -->
     <script type="module">
-        // Configuración de Firebase
+    // Configuración de Firebase (versión actualizada)
         const firebaseConfig = {
             apiKey: "AIzaSyDVOEausaNCZd_PoVlnJ7tRdB9p71uuOHg",
             authDomain: "bingo-viajero.firebaseapp.com",
@@ -326,302 +326,258 @@
             messagingSenderId: "882262843152",
             appId: "1:882262843152:web:06efbcf10ea6a876a98f95"
         };
-
-        // Importaciones de Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
+    
+        // Importaciones de Firebase (versión 9.22.0)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { 
             getAuth, 
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword,
             signOut,
             onAuthStateChanged
-        } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { 
             getFirestore, 
             doc, 
             setDoc, 
-            getDoc 
-        } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
-
-        // Inicializa Firebase
+            getDoc,
+            enableIndexedDbPersistence
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    
+        // Inicialización
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
-
-        // Habilita caché offline
+    
+        // Habilita persistencia offline
         enableIndexedDbPersistence(db).catch((err) => {
-            if (err.code === 'failed-precondition') {
-                console.warn("Persistencia offline no disponible (múltiples pestañas abiertas)");
-            } else if (err.code === 'unimplemented') {
-                console.warn("Persistencia no soportada en este navegador");
-            }
+            console.warn("Persistencia offline no disponible:", err.code);
         });
-
+    
         // Variables globales
         let currentUser = null;
-        const modal = document.getElementById('auth-modal');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const showRegister = document.getElementById('show-register');
-        const showLogin = document.getElementById('show-login');
-        const loginBtn = document.getElementById('login-btn');
-        const registerBtn = document.getElementById('register-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const saveBtn = document.getElementById('save-btn');
-        const usernameDisplay = document.getElementById('username-display');
-        const userInfo = document.getElementById('user-info');
         const cells = document.querySelectorAll('#bingo-table td');
-
-        // Función debounce para guardado automático
-        function debounce(func, wait) {
-            let timeout;
-            return function() {
-                const context = this, args = arguments;
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    func.apply(context, args);
-                }, wait);
-            };
-        }
-
-        // Guardar en localStorage
-        function saveToLocalStorage() {
-            const progress = [];
-            cells.forEach((cell, index) => {
-                if (cell.classList.contains('selected-verde')) {
-                    progress.push({ index, color: 'verde' });
-                } else if (cell.classList.contains('selected-naranja')) {
-                    progress.push({ index, color: 'naranja' });
-                } else if (cell.classList.contains('selected-rosa')) {
-                    progress.push({ index, color: 'rosa' });
-                }
-            });
-            
-            localStorage.setItem('bingoProgress', JSON.stringify(progress));
-        }
-
-        // Cargar desde localStorage
-        function loadFromLocalStorage() {
-            const savedProgress = localStorage.getItem('bingoProgress');
-            if (savedProgress) {
-                const progress = JSON.parse(savedProgress);
-                resetBingo();
-                
-                progress.forEach(item => {
-                    if (cells[item.index]) {
-                        cells[item.index].classList.add(`selected-${item.color}`);
-                    }
-                });
-            }
-        }
-
-        // Mostrar modal al cargar si no hay usuario
+        
+        // Inicialización de eventos
         document.addEventListener('DOMContentLoaded', () => {
-            // Cargar cualquier progreso guardado localmente primero
-            loadFromLocalStorage();
-            
-            showAuthModal();
+            initAuthModal();
             setupEventListeners();
+            loadFromLocalStorage(); // Carga inicial desde localStorage
         });
-
-        function showAuthModal() {
-            modal.style.display = 'block';
-            loginForm.style.display = 'block';
-            registerForm.style.display = 'none';
-        }
-
+    
+        // ========== FUNCIONES PRINCIPALES ========== //
+        
         function setupEventListeners() {
-            // Celdas del bingo con debounce para guardado automático
-            const debouncedSave = debounce(() => {
-                if (currentUser) {
-                    saveProgress();
-                } else {
-                    saveToLocalStorage();
-                }
-            }, 2000);
-
+            // Eventos de celdas
             cells.forEach(cell => {
-                cell.addEventListener('click', function() {
-                    const colorType = this.getAttribute('data-color');
-                    this.classList.toggle(`selected-${colorType}`);
-                    debouncedSave();
-                });
+                cell.addEventListener('click', () => toggleCell(cell));
             });
             
-            // Botones de control
-            document.getElementById('reset-btn').addEventListener('click', () => {
-                resetBingo();
-                if (currentUser) {
-                    saveProgress();
-                } else {
-                    saveToLocalStorage();
-                }
-            });
+            // Botones
+            document.getElementById('reset-btn').addEventListener('click', resetBingo);
             document.getElementById('print-btn').addEventListener('click', () => window.print());
-            saveBtn.addEventListener('click', saveProgress);
-            
-            // Autenticación
-            showRegister.addEventListener('click', (e) => {
+            document.getElementById('save-btn').addEventListener('click', saveProgress);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
+            document.getElementById('login-btn').addEventListener('click', handleLogin);
+            document.getElementById('register-btn').addEventListener('click', handleRegister);
+            document.getElementById('show-register').addEventListener('click', (e) => {
                 e.preventDefault();
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
+                toggleAuthForms();
             });
-            
-            showLogin.addEventListener('click', (e) => {
+            document.getElementById('show-login').addEventListener('click', (e) => {
                 e.preventDefault();
-                registerForm.style.display = 'none';
-                loginForm.style.display = 'block';
+                toggleAuthForms();
             });
-            
-            loginBtn.addEventListener('click', handleLogin);
-            registerBtn.addEventListener('click', handleRegister);
-            logoutBtn.addEventListener('click', handleLogout);
-            
-            // Cerrar modal
             document.querySelector('.close').addEventListener('click', () => {
-                if (currentUser) modal.style.display = 'none';
+                if (currentUser) document.getElementById('auth-modal').style.display = 'none';
             });
         }
-
+    
+        function toggleCell(cell) {
+            const color = cell.getAttribute('data-color');
+            cell.classList.toggle(`selected-${color}`);
+            debouncedSave();
+        }
+    
+        // ========== AUTENTICACIÓN ========== //
+        
         async function handleLogin() {
-          const username = document.getElementById('login-username').value;
-          const password = document.getElementById('login-password').value;
-          const email = `${username}@bingoapp.com`;
-
-          if (!username || !password) {
-            alert('Por favor completa todos los campos');
-            return;
-          }
-
-      try {
-        // 1. Inicia sesión con Firebase Auth
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const email = `${username}@bingoapp.com`;
     
-        // 2. Intenta cargar datos del usuario (maneja errores offline)
-        let usernameSaved = username; // Valor por defecto
-        try {
-          const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-          if (userDoc.exists()) {
-            usernameSaved = userDoc.data().username;
-          }
-        } catch (dbError) {
-          console.log("Usando nombre local (Firestore offline):", dbError);
-        }
-
-        // 3. Actualiza el estado
-        currentUser = {
-          uid: userCredential.user.uid,
-          username: usernameSaved
-        };
+            if (!validateAuthFields(username, password)) return;
     
-        modal.style.display = 'none';
-        updateUI();
-        loadProgress();
-    
-      } catch (error) {
-        alert("Error al iniciar sesión: " + error.message);
-      }
-    }
-
-        function updateUI() {
-            if (currentUser) {
-                usernameDisplay.textContent = currentUser.username;
-                userInfo.style.display = 'flex';
-                saveBtn.style.display = 'inline-block';
-            } else {
-                userInfo.style.display = 'none';
-                saveBtn.style.display = 'none';
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                await loadUserData(userCredential.user.uid, username);
+                document.getElementById('auth-modal').style.display = 'none';
+                loadProgress();
+            } catch (error) {
+                showError("Error al iniciar sesión: " + error.message);
             }
         }
-
-        function resetBingo() {
-            cells.forEach(cell => {
-                cell.classList.remove('selected-verde', 'selected-naranja', 'selected-rosa');
-            });
-        }
-
-        async function saveProgress() {
-            const progress = [];
-            cells.forEach((cell, index) => {
-                if (cell.classList.contains('selected-verde')) {
-                    progress.push({ index, color: 'verde' });
-                } else if (cell.classList.contains('selected-naranja')) {
-                    progress.push({ index, color: 'naranja' });
-                } else if (cell.classList.contains('selected-rosa')) {
-                    progress.push({ index, color: 'rosa' });
-                }
-            });
-            
-            // Guardar en localStorage siempre
-            localStorage.setItem('bingoProgress', JSON.stringify(progress));
-            
-            // Guardar en Firebase si hay usuario
-            if (currentUser) {
-                try {
-                    await setDoc(doc(db, "bingoProgress", currentUser.uid), {
-                        progress: progress,
-                        lastUpdated: new Date()
-                    }, { merge: true });
-                    
-                    alert('Progreso guardado en la nube ✨');
-                } catch (error) {
-                    alert("Error al guardar en Firebase: " + error.message);
-                }
+    
+        async function handleRegister() {
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            const email = `${username}@bingoapp.com`;
+    
+            if (!validateAuthFields(username, password)) return;
+    
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await setDoc(doc(db, "users", userCredential.user.uid), { username });
+                await loadUserData(userCredential.user.uid, username);
+                document.getElementById('auth-modal').style.display = 'none';
+            } catch (error) {
+                showError("Error al registrarse: " + error.message);
             }
         }
-
-        async function loadProgress() {
-            // Primero intenta cargar de Firebase
-            if (currentUser) {
-                try {
-                    const docSnap = await getDoc(doc(db, "bingoProgress", currentUser.uid));
-                    
-                    if (docSnap.exists()) {
-                        const progress = docSnap.data().progress;
-                        resetBingo();
-                        
-                        progress.forEach(item => {
-                            if (cells[item.index]) {
-                                cells[item.index].classList.add(`selected-${item.color}`);
-                            }
-                        });
-                        return; // Salir si se cargó de Firebase
-                    }
-                } catch (error) {
-                    console.error("Error al cargar de Firebase:", error);
-                }
-            }
-            
-            // Si no hay usuario o falló Firebase, cargar de localStorage
-            loadFromLocalStorage();
-        }
-
+    
         async function handleLogout() {
             try {
                 await signOut(auth);
                 currentUser = null;
                 updateUI();
-                resetBingo();
-                showAuthModal();
             } catch (error) {
-                alert("Error al cerrar sesión: " + error.message);
+                showError("Error al cerrar sesión: " + error.message);
             }
         }
-
-        // Maneja el estado de autenticación
+    
+        // ========== FUNCIONES AUXILIARES ========== //
+        
+        async function loadUserData(uid, defaultUsername) {
+            let username = defaultUsername;
+            try {
+                const userDoc = await getDoc(doc(db, "users", uid));
+                if (userDoc.exists()) username = userDoc.data().username;
+            } catch (error) {
+                console.log("Usando nombre local:", error);
+            }
+            
+            currentUser = { uid, username };
+            updateUI();
+        }
+    
+        function validateAuthFields(username, password) {
+            if (!username || !password) {
+                showError('Por favor completa todos los campos');
+                return false;
+            }
+            return true;
+        }
+    
+        function showError(message) {
+            alert(message);
+            console.error(message);
+        }
+    
+        function updateUI() {
+            const userInfo = document.getElementById('user-info');
+            const saveBtn = document.getElementById('save-btn');
+            
+            if (currentUser) {
+                document.getElementById('username-display').textContent = currentUser.username;
+                userInfo.style.display = 'flex';
+                saveBtn.style.display = 'inline-block';
+            } else {
+                userInfo.style.display = 'none';
+                saveBtn.style.display = 'none';
+                document.getElementById('auth-modal').style.display = 'block';
+            }
+        }
+    
+        // ========== PERSISTENCIA DE DATOS ========== //
+        
+        const debouncedSave = debounce(() => {
+            currentUser ? saveProgress() : saveToLocalStorage();
+        }, 2000);
+    
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(func, wait);
+            };
+        }
+    
+        function saveToLocalStorage() {
+            const progress = Array.from(cells).map((cell, index) => {
+                const color = cell.getAttribute('data-color');
+                return cell.classList.contains(`selected-${color}`) ? { index, color } : null;
+            }).filter(Boolean);
+            
+            localStorage.setItem('bingoProgress', JSON.stringify(progress));
+        }
+    
+        async function saveProgress() {
+            if (!currentUser) return;
+            
+            const progress = Array.from(cells).map((cell, index) => {
+                const color = cell.getAttribute('data-color');
+                return cell.classList.contains(`selected-${color}`) ? { index, color } : null;
+            }).filter(Boolean);
+    
+            try {
+                await setDoc(doc(db, "bingoProgress", currentUser.uid), {
+                    progress,
+                    lastUpdated: new Date()
+                }, { merge: true });
+            } catch (error) {
+                console.error("Error al guardar:", error);
+            }
+        }
+    
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('bingoProgress');
+            if (!saved) return;
+            
+            JSON.parse(saved).forEach(({ index, color }) => {
+                if (cells[index]) cells[index].classList.add(`selected-${color}`);
+            });
+        }
+    
+        async function loadProgress() {
+            if (!currentUser) return loadFromLocalStorage();
+            
+            try {
+                const docSnap = await getDoc(doc(db, "bingoProgress", currentUser.uid));
+                if (docSnap.exists()) {
+                    resetBingo();
+                    docSnap.data().progress.forEach(({ index, color }) => {
+                        if (cells[index]) cells[index].classList.add(`selected-${color}`);
+                    });
+                }
+            } catch (error) {
+                console.error("Error al cargar progreso:", error);
+                loadFromLocalStorage();
+            }
+        }
+    
+        function resetBingo() {
+            cells.forEach(cell => {
+                cell.classList.remove('selected-verde', 'selected-naranja', 'selected-rosa');
+            });
+        }
+    
+        function initAuthModal() {
+            document.getElementById('auth-modal').style.display = 'block';
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        }
+    
+        function toggleAuthForms() {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            registerForm.style.display = registerForm.style.display === 'none' ? 'block' : 'none';
+        }
+    
+        // Estado de autenticación
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-                    if (docSnap.exists()) {
-                        currentUser = {
-                            uid: user.uid,
-                            username: docSnap.data().username
-                        };
-                        updateUI();
-                        loadProgress();
-                    }
-                });
+                loadUserData(user.uid, user.email.split('@')[0]);
             } else {
                 currentUser = null;
                 updateUI();
