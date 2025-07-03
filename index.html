@@ -474,42 +474,45 @@
             });
         }
 
-        async function handleRegister() {
-            const username = document.getElementById('register-username').value;
-            const password = document.getElementById('register-password').value;
-            const email = `${username}@bingoapp.com`;
+        async function handleLogin() {
+          const username = document.getElementById('login-username').value;
+          const password = document.getElementById('login-password').value;
+          const email = `${username}@bingoapp.com`;
 
-            if (!username || !password) {
-                alert('Por favor completa todos los campos');
-                return;
-            }
+          if (!username || !password) {
+            alert('Por favor completa todos los campos');
+            return;
+          }
 
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", userCredential.user.uid), { username });
-                
-                currentUser = {
-                    uid: userCredential.user.uid,
-                    username: username
-                };
-                
-                // Migrar datos de localStorage a Firebase
-                const localProgress = localStorage.getItem('bingoProgress');
-                if (localProgress) {
-                    await setDoc(doc(db, "bingoProgress", currentUser.uid), {
-                        progress: JSON.parse(localProgress),
-                        lastUpdated: new Date()
-                    }, { merge: true });
-                    localStorage.removeItem('bingoProgress');
-                }
-                
-                modal.style.display = 'none';
-                updateUI();
-                alert("¡Registro exitoso!");
-            } catch (error) {
-                alert("Error al registrarse: " + error.message);
-            }
+      try {
+        // 1. Inicia sesión con Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+        // 2. Intenta cargar datos del usuario (maneja errores offline)
+        let usernameSaved = username; // Valor por defecto
+        try {
+          const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+          if (userDoc.exists()) {
+            usernameSaved = userDoc.data().username;
+          }
+        } catch (dbError) {
+          console.log("Usando nombre local (Firestore offline):", dbError);
         }
+
+        // 3. Actualiza el estado
+        currentUser = {
+          uid: userCredential.user.uid,
+          username: usernameSaved
+        };
+    
+        modal.style.display = 'none';
+        updateUI();
+        loadProgress();
+    
+      } catch (error) {
+        alert("Error al iniciar sesión: " + error.message);
+      }
+    }
 
         async function handleLogin() {
             const username = document.getElementById('login-username').value;
