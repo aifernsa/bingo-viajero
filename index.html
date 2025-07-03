@@ -524,33 +524,6 @@
       }
     }
 
-        async function handleLogin() {
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
-            const email = `${username}@bingoapp.com`;
-
-            if (!username || !password) {
-                alert('Por favor completa todos los campos');
-                return;
-            }
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-                
-                currentUser = {
-                    uid: userCredential.user.uid,
-                    username: userDoc.data().username
-                };
-                
-                modal.style.display = 'none';
-                updateUI();
-                loadProgress();
-            } catch (error) {
-                alert("Error al iniciar sesión: " + error.message);
-            }
-        }
-
         function updateUI() {
             if (currentUser) {
                 usernameDisplay.textContent = currentUser.username;
